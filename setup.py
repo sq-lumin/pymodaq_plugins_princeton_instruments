@@ -26,7 +26,7 @@ setupOpts = dict(
     author_email=config['plugin-info']['author-email'],
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 2 - Pre-Alpha",
         "Environment :: Other Environment",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Human Machine Interfaces",
