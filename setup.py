@@ -1,12 +1,10 @@
 from setuptools import setup, find_packages
+from pathlib import Path
 import toml
 
 config = toml.load('./plugin_info.toml')
 SHORT_PLUGIN_NAME = config['plugin-info']['SHORT_PLUGIN_NAME']
 PLUGIN_NAME = f"pymodaq_plugins_{SHORT_PLUGIN_NAME}"
-
-
-from pathlib import Path
 
 if not SHORT_PLUGIN_NAME.isidentifier():
     raise ValueError("'SHORT_PLUGIN_NAME = %s' is not a valid python identifier." % SHORT_PLUGIN_NAME)

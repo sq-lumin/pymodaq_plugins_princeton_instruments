@@ -26,7 +26,7 @@ def define_pymodaq_pyqt_parameter(parameter):
             else:
                 p_type = 'int'
                 # There might be limits though
-                if parameter.cons_type == "Range" and parameter.cons_permanen t= =True:
+                if parameter.cons_type == "Range" and parameter.cons_permanent == True:
                     p_limits = [parameter.min ,parameter.max]
                 else:
                     p_limits = None
@@ -39,7 +39,7 @@ def define_pymodaq_pyqt_parameter(parameter):
             else:
                 p_type = 'float'
                 # There might be limits though
-                if parameter.cons_type == "Range" and parameter.cons_permanen t= =True:
+                if parameter.cons_type == "Range" and parameter.cons_permanent == True:
                     p_limits = [parameter.min ,parameter.max]
                 else:
                     p_limits = None
