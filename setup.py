@@ -12,7 +12,6 @@ if not SHORT_PLUGIN_NAME.isidentifier():
 with open(str(Path(__file__).parent.joinpath(f'src/{PLUGIN_NAME}/VERSION')), 'r') as fvers:
     version = fvers.read().strip()
 
-
 with open('README.rst') as fd:
     long_description = fd.read()
 

@@ -2,10 +2,12 @@ import numpy as np
 from easydict import EasyDict as edict
 from pymodaq.daq_utils.daq_utils import ThreadCommand, getLineInfo, DataFromPlugins, Axis
 from pymodaq.daq_viewer.utility_classes import DAQ_Viewer_base, comon_parameters, main
+from pyqtgraph.parametertree import Parameter
 
 from ...hardware.picam_utils import define_pymodaq_pyqt_parameter
 
 import pylablib.devices.PrincetonInstruments as PI
+
 
 class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
     """
@@ -24,10 +26,29 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
         self.x_axis = None
         self.y_axis = None
 
+    def _update_all_settings(self):
+        for grandparam in ['settable_camera_parameters', 'read_only_camera_parameters']:
+            for param in self.settings.child(grandparam).children():
+                #update limits in the parameter
+                self.controller.get_attribute(param.title()).update_limits()
+                #retrieve a value change in other parameters
+                newval = self.controller.get_attribute_value(param.title())
+                if newval != param.value():
+                    self.settings.child(grandparam, param.name()).setValue(newval)
+                    self.emit_status(ThreadCommand('Update_Status', [f'updated {param.title()}: {param.value()}']))
+
     def commit_settings(self, param):
         """
         """
-        pass
+        #Only if the parameter that was changed is settable and also
+        if self.controller.get_attribute(param.title()).writable:
+            if self.controller.get_attribute_value(param.title()) != param.value():
+                #Update the controller
+                self.controller.set_attribute_value(param.title(),param.value(),truncate=True,error_on_missing=True)
+                #Log that a parameter change was called
+                self.emit_status(ThreadCommand('Update_Status', [f'Changed {param.title()}: {param.value()}']))
+                self._update_all_settings()
+
 #         ## TODO for your custom plugin
 #         if param.name() == "a_parameter_you've_added_in_self.params":
 #             self.controller.your_method_to_apply_this_param_change()
@@ -58,7 +79,9 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                 else:
                     self.controller = controller
             else:
+
                 camera = PI.PicamCamera(self.settings.child('serial_number').value())
+                self.settings.child('controller_id').setValue(camera.get_device_info().model)
 
                 self.controller = camera  # any object that will control the stages
 
@@ -69,6 +92,21 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                     if tmp != None:
                         camera_params.append(tmp)
                 #####################################
+
+                read_and_set_parameters = [par for par in camera_params if not par['readonly']]
+                read_only_parameters = [par for par in camera_params if par['readonly']]
+
+                self.settings.addChild({'title':  'Settable Camera Parameters',
+                                        'name': 'settable_camera_parameters',
+                                        'type': 'group',
+                                        'children': read_and_set_parameters,
+                                        })
+
+                self.settings.addChild({'title' : 'Read Only Camera Parameters',
+                                        'name': 'read_only_camera_parameters',
+                                        'type': 'group',
+                                        'children': read_only_parameters,
+                                        })
 
             # ## TODO for your custom plugin
             # # get the x_axis (you may want to to this also in the commit settings if x_axis may have changed
