@@ -4,7 +4,7 @@ from pymodaq.daq_utils.daq_utils import ThreadCommand, getLineInfo, DataFromPlug
 from pymodaq.daq_viewer.utility_classes import DAQ_Viewer_base, comon_parameters, main
 from pyqtgraph.parametertree import Parameter
 
-from ...hardware.picam_utils import define_pymodaq_pyqt_parameter
+from ...hardware.picam_utils import define_pymodaq_pyqt_parameter, sort_by_priority_list
 
 import pylablib.devices.PrincetonInstruments as PI
 
@@ -49,12 +49,6 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                 self.emit_status(ThreadCommand('Update_Status', [f'Changed {param.title()}: {param.value()}']))
                 self._update_all_settings()
 
-#         ## TODO for your custom plugin
-#         if param.name() == "a_parameter_you've_added_in_self.params":
-#             self.controller.your_method_to_apply_this_param_change()
-# #        elif ...
-
-    ##
 
     def ini_detector(self, controller=None):
         """Detector communication initialization
@@ -96,6 +90,24 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                 read_and_set_parameters = [par for par in camera_params if not par['readonly']]
                 read_only_parameters = [par for par in camera_params if par['readonly']]
 
+                priority = ['Exposure Time',
+                            'ADC Speed',
+                            'ADC Analog Gain',
+                            'ADC Quality',
+                            'Sensor Temperature Set Point',
+                            ]
+
+                read_and_set_parameters = sort_by_priority_list(read_and_set_parameters,priority)
+
+                priority = ['Sensor Temperature',
+                            'Readout Time Calculation',
+                            'Frame Rate Calculation',
+                            'Pixel Width',
+                            'Pixel Height',
+                            ]
+
+                read_only_parameters = sort_by_priority_list(read_only_parameters,priority)
+
                 self.settings.addChild({'title':  'Settable Camera Parameters',
                                         'name': 'settable_camera_parameters',
                                         'type': 'group',
@@ -108,27 +120,7 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                                         'children': read_only_parameters,
                                         })
 
-            # ## TODO for your custom plugin
-            # # get the x_axis (you may want to to this also in the commit settings if x_axis may have changed
-            # data_x_axis = self.controller.your_method_to_get_the_x_axis()  # if possible
-            # self.x_axis = Axis(data=data_x_axis, label='', units='')
-            # self.emit_x_axis()
-            #
-            # # get the y_axis (you may want to to this also in the commit settings if y_axis may have changed
-            # data_y_axis = self.controller.your_method_to_get_the_y_axis()  # if possible
-            # self.y_axis = Axis(data=data_y_axis, label='', units='')
-            # self.emit_y_axis()
-
-            # ## TODO for your custom plugin
-            # # initialize viewers pannel with the future type of data
-            # self.data_grabed_signal_temp.emit([DataFromPlugins(name='Mock1', data=["2D numpy array"],
-            #                                       dim='Data2D', labels=['dat0'],
-            #                                       x_axis=self.x_axis,
-            #                                       y_axis=self.y_axis), ])
-
-            ##############################
-
-            self.status.info = "Initialising camcam"
+            self.status.info = "Initialised camera"
             self.status.initialized = True
             self.status.controller = self.controller
             return self.status

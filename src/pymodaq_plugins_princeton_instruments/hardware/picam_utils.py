@@ -61,3 +61,23 @@ def define_pymodaq_pyqt_parameter(parameter):
         p_dict.update({'limits' : p_limits})
 
     return p_dict
+
+
+def sort_by_priority_list(values, priority):
+    """
+    Sorts a list of parameter dictionaries by a list of priority. useful to select an order of priority when setting up
+    parameters automatically.
+    """
+    # priority_dict = {k: i for i, k in enumerate(priority)}
+
+    #try to get a value from priority_dict using priority_dict.get(value). If not found we just return the length of the
+    #List.
+    # def priority_getter(value):
+    #     return priority_dict.get(value['title'], len(values))
+    def get_priority(value):
+        try:
+            return priority.index(value['title'])+1
+        except ValueError:
+            return len(values)
+
+    return sorted(values, key=get_priority)
