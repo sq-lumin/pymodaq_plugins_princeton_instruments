@@ -37,17 +37,44 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                     self.settings.child(grandparam, param.name()).setValue(newval)
                     self.emit_status(ThreadCommand('Update_Status', [f'updated {param.title()}: {param.value()}']))
 
+    def _update_rois(self,):
+        """ """
+        new_x = self.settings.child('settable_camera_parameters', 'rois', 'x').value()
+        new_width = self.settings.child('settable_camera_parameters', 'rois', 'width').value()
+        new_xbinning = self.settings.child('settable_camera_parameters', 'rois', 'x_binning').value()
+
+        new_y = self.settings.child('settable_camera_parameters', 'rois', 'y').value()
+        new_height = self.settings.child('settable_camera_parameters', 'rois', 'height').value()
+        new_ybinning = self.settings.child('settable_camera_parameters', 'rois', 'y_binning').value()
+
+        new_roi = (new_x, new_width, new_xbinning, new_y, new_height, new_ybinning)
+        if new_roi != tuple(self.controller.get_attribute_value('ROIs')[0]):
+            # self.controller.set_attribute_value("ROIs",[new_roi])
+            self.controller.set_roi(new_x,new_x+new_width,new_y,new_y+new_height,hbin=new_xbinning,vbin=new_ybinning)
+            self.emit_status(ThreadCommand('Update_Status', [f'Changed ROI: {new_roi}']))
+            self._update_all_settings()
+            self.controller.clear_acquisition()
+            self.controller._commit_parameters()
+            self.controller.setup_acquisition()
+
     def commit_settings(self, param):
-        """
-        """
-        #Only if the parameter that was changed is settable and also
-        if self.controller.get_attribute(param.title()).writable:
+        """ """
+        # We have to treat rois specially
+        if param.parent().name() == "rois":
+            self._update_rois()
+        # Otherwise the other parameters can be dealt with universally
+        elif self.controller.get_attribute(param.title()).writable:
             if self.controller.get_attribute_value(param.title()) != param.value():
                 #Update the controller
                 self.controller.set_attribute_value(param.title(),param.value(),truncate=True,error_on_missing=True)
                 #Log that a parameter change was called
                 self.emit_status(ThreadCommand('Update_Status', [f'Changed {param.title()}: {param.value()}']))
                 self._update_all_settings()
+
+        # Check if the camera is currently acquiring
+        # if yes, check if the modified setting can be changed online
+        #   if yes, commit the change to hardware.
+        #   if not, do not commit yet.
 
 
     def ini_detector(self, controller=None):
@@ -94,6 +121,7 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                             'ADC Speed',
                             'ADC Analog Gain',
                             'ADC Quality',
+                            'ROIs',
                             'Sensor Temperature Set Point',
                             ]
 
@@ -136,43 +164,55 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
         Terminate the communication protocol
         """
         self.controller.close()
+        self.settings.child('settable_camera_parameters').remove()
+        self.settings.child('read_only_camera_parameters').remove()
         ##
+
+    def _toggle_non_online_parameters(self,enabled=True):
+        for param in self.settings.child('settable_camera_parameters').children():
+            if not self.controller.get_attribute(param.title()).can_set_online:
+                param.setOpts(enabled=enabled)
+        #The ROIs parameters still need special treatment which is not ideal but well...
+        for param in self.settings.child('settable_camera_parameters',"rois").children():
+            param.setOpts(enabled=enabled)
+
 
     def grab_data(self, Naverage=1, **kwargs):
         """
-
         Parameters
         ----------
-        Naverage: (int) Number of hardware averaging
+        Naverage: (int) Number of averaging
         kwargs: (dict) of others optionals arguments
         """
-        pass
-        # ## TODO for your custom plugin
-        #
-        # ##synchrone version (blocking function)
-        # data_tot = self.controller.your_method_to_start_a_grab_snap()
-        # self.data_grabed_signal.emit([DataFromPlugins(name='Mock1', data=data_tot,
-        #                                               dim='Data2D', labels=['dat0'])])
-        # #########################################################
-        #
-        # ##asynchrone version (non-blocking function with callback)
-        # self.controller.your_method_to_start_a_grab_snap(self.callback)
-        #########################################################
+        # Warning, acquisition_in_progress returns 1,0 and not a real bool
+        if not self.controller.acquisition_in_progress():
+            # 0. Disable all non online-settable parameters
+            self._toggle_non_online_parameters(enabled=False)
+            # 1. Start acquisition
+            self.controller.stop_acquisition()
+            self.controller.clear_acquisition()
+            self.controller.start_acquisition()
+
+        self.controller.wait_for_frame()  # wait for the next available frame
+        frame = self.controller.read_oldest_image()
+
+        self.data_grabed_signal.emit([DataFromPlugins(name='PYLon', data=[frame],
+                                                      dim='Data2D', labels=['img'])])
 
     def callback(self):
         """optional asynchrone method called when the detector has finished its acquisition of data"""
-        pass
-        # data_tot = self.controller.your_method_to_get_data_from_buffer()
-        # self.data_grabed_signal.emit([DataFromPlugins(name='Mock1', data=data_tot,
-        #                                               dim='Data2D', labels=['dat0'])])
+        raise NotImplementedError
+
 
     def stop(self):
-        pass
+        # pass
         # ## TODO for your custom plugin
         # self.controller.your_method_to_stop_acquisition()
         # self.emit_status(ThreadCommand('Update_Status', ['Some info you want to log']))
-        ##############################
-
+        #############################
+        self.controller.stop_acquisition()
+        self.controller.clear_acquisition()
+        self._toggle_non_online_parameters(enabled=True)
         return ''
 
 

@@ -1,7 +1,15 @@
 def normalise_name(name):
     return name.replace(' ' ,'_').lower()
 
+def get_ROI_dictlist(ROI):
+    """ """
+    RDL = []
+    for k in ROI._fields:
+        RDL.append({'title': k, 'name': k, 'type': 'int', 'value': getattr(ROI,k)})
+    return RDL
+
 def define_pymodaq_pyqt_parameter(parameter):
+    """ """
     # Get basic parameter attributes
     p_title = parameter.name
     p_fmt_name = normalise_name(parameter.name)
@@ -47,7 +55,18 @@ def define_pymodaq_pyqt_parameter(parameter):
         p_limits = list(parameter.labels.keys())  # Always str
     # ROIs is special
     elif parameter.kind == 'ROIs':
-        return  # Return None
+        p_type = 'group'
+        # p_value = [get_ROI_dictlist(ROI) for ROI in parameter.get_value()]
+        p_children = get_ROI_dictlist(parameter.get_value()[0])
+
+        p_dict = {'title': p_title,
+                  'name': p_fmt_name,
+                  'type': p_type,
+                  'children': p_children,
+                  'readonly': p_readonly}
+
+        return p_dict
+
     else:
         raise ValueError
 
@@ -81,3 +100,4 @@ def sort_by_priority_list(values, priority):
             return len(values)
 
     return sorted(values, key=get_priority)
+
