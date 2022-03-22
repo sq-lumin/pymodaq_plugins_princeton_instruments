@@ -2,7 +2,7 @@ import numpy as np
 from easydict import EasyDict as edict
 from pymodaq.daq_utils.daq_utils import ThreadCommand, getLineInfo, DataFromPlugins, Axis
 from pymodaq.daq_viewer.utility_classes import DAQ_Viewer_base, comon_parameters, main
-from pyqtgraph.parametertree import Parameter
+# from pyqtgraph.parametertree import Parameter
 
 from ...hardware.picam_utils import define_pymodaq_pyqt_parameter, sort_by_priority_list
 
@@ -20,11 +20,15 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
         {'title': 'Serial number:', 'name': 'serial_number', 'type': 'list', 'limits': serialnumbers}
     ]
 
+    hardware_averaging = False
+
     def __init__(self, parent=None, params_state=None):
         super().__init__(parent, params_state)
 
         self.x_axis = None
         self.y_axis = None
+
+        self.data_shape = 'Data2D'
 
     def _update_all_settings(self):
         for grandparam in ['settable_camera_parameters', 'read_only_camera_parameters']:
@@ -147,7 +151,7 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                                         'type': 'group',
                                         'children': read_only_parameters,
                                         })
-
+            self._prepare_view()
             self.status.info = "Initialised camera"
             self.status.initialized = True
             self.status.controller = self.controller
@@ -163,10 +167,18 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
         """
         Terminate the communication protocol
         """
+        #Terminate the communication
         self.controller.close()
+        self.controller = None #Garbage collect the controller
+        #Clear all the parameters
+        self.settings.child('settable_camera_parameters').clearChildren()
         self.settings.child('settable_camera_parameters').remove()
+        self.settings.child('read_only_camera_parameters').clearChildren()
         self.settings.child('read_only_camera_parameters').remove()
-        ##
+        #Reset the status of the Viewer Plugin
+        self.status.initialized = False
+        self.status.controller = None
+        self.status.info = ""
 
     def _toggle_non_online_parameters(self,enabled=True):
         for param in self.settings.child('settable_camera_parameters').children():
@@ -175,6 +187,21 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
         #The ROIs parameters still need special treatment which is not ideal but well...
         for param in self.settings.child('settable_camera_parameters',"rois").children():
             param.setOpts(enabled=enabled)
+
+
+    def _prepare_view(self):
+        sizex = self.settings.child('settable_camera_parameters', 'rois', 'width').value()
+        sizey = self.settings.child('settable_camera_parameters', 'rois', 'height').value()
+        dtype = np.int_
+
+        mock_data = np.zeros((sizey,sizex),dtype = dtype)
+        data_shape = 'Data2D' if sizey != 1 else 'Data1D'
+        if data_shape != self.data_shape:
+            self.data_shape = data_shape
+            # init the viewers
+            self.data_grabed_signal_temp.emit([DataFromPlugins(name='Picam',
+                                                               data=[mock_data],
+                                                               dim=self.data_shape)])
 
 
     def grab_data(self, Naverage=1, **kwargs):
@@ -196,8 +223,26 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
         self.controller.wait_for_frame()  # wait for the next available frame
         frame = self.controller.read_oldest_image()
 
-        self.data_grabed_signal.emit([DataFromPlugins(name='PYLon', data=[frame],
-                                                      dim='Data2D', labels=['img'])])
+        self.data_grabed_signal.emit([DataFromPlugins(name='Picam', data=[frame],
+                                                      dim=self.data_shape, labels=[''])])
+
+        # if frame.shape[0]>2:
+        #     self.data_grabed_signal.emit([DataFromPlugins(name='Picam', data=[frame],
+        #                                               dim='Data2D', labels=['img'])])
+        # elif frame.shape[0]==2:
+        #     self.data_grabed_signal.emit([DataFromPlugins(name='Picam',
+        #                                                   data=[frame[0],frame[1]],
+        #                                                   dim='Data1D',
+        #                                                   labels=['up half','down half']
+        #
+        #                                                   )])
+        # elif frame.shape[0]==1:
+        #     self.data_grabed_signal.emit([DataFromPlugins(name='Picam',
+        #                                                   data=[frame],
+        #                                                   dim='Data1D',
+        #                                                   labels=['spectrum']
+        #                                                   )])
+
 
     def callback(self):
         """optional asynchrone method called when the detector has finished its acquisition of data"""
