@@ -3,6 +3,7 @@ from easydict import EasyDict as edict
 from pymodaq.daq_utils.daq_utils import ThreadCommand, getLineInfo, DataFromPlugins, Axis
 from pymodaq.daq_viewer.utility_classes import DAQ_Viewer_base, comon_parameters, main
 # from pyqtgraph.parametertree import Parameter
+from qtpy import QtWidgets
 
 from ...hardware.picam_utils import define_pymodaq_pyqt_parameter, sort_by_priority_list
 
@@ -58,15 +59,16 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
             self.emit_status(ThreadCommand('Update_Status', [f'Changed ROI: {new_roi}']))
             self._update_all_settings()
             self.controller.clear_acquisition()
-            self.controller._commit_parameters()
+            self.controller._commit_parameters() #Needed so that the new ROIs are checked by the camera
             self.controller.setup_acquisition()
+
 
     def commit_settings(self, param):
         """ """
         # We have to treat rois specially
         if param.parent().name() == "rois":
             self._update_rois()
-        # Otherwise the other parameters can be dealt with universally
+        # Otherwise the other parameters can be dealt with at once
         elif self.controller.get_attribute(param.title()).writable:
             if self.controller.get_attribute_value(param.title()) != param.value():
                 #Update the controller
@@ -74,11 +76,6 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                 #Log that a parameter change was called
                 self.emit_status(ThreadCommand('Update_Status', [f'Changed {param.title()}: {param.value()}']))
                 self._update_all_settings()
-
-        # Check if the camera is currently acquiring
-        # if yes, check if the modified setting can be changed online
-        #   if yes, commit the change to hardware.
-        #   if not, do not commit yet.
 
 
     def ini_detector(self, controller=None):
@@ -138,7 +135,7 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                             'Pixel Height',
                             ]
 
-                read_only_parameters = sort_by_priority_list(read_only_parameters,priority)
+                read_only_parameters = sort_by_priorityó_list(read_only_parameters,priority)
 
                 self.settings.addChild({'title':  'Settable Camera Parameters',
                                         'name': 'settable_camera_parameters',
@@ -151,7 +148,9 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
                                         'type': 'group',
                                         'children': read_only_parameters,
                                         })
+
             self._prepare_view()
+
             self.status.info = "Initialised camera"
             self.status.initialized = True
             self.status.controller = self.controller
@@ -180,7 +179,8 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
         self.status.controller = None
         self.status.info = ""
 
-    def _toggle_non_online_parameters(self,enabled=True):
+
+    def _toggle_non_online_parameters(self,enabled):
         for param in self.settings.child('settable_camera_parameters').children():
             if not self.controller.get_attribute(param.title()).can_set_online:
                 param.setOpts(enabled=enabled)
@@ -190,19 +190,27 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
 
 
     def _prepare_view(self):
-        sizex = self.settings.child('settable_camera_parameters', 'rois', 'width').value()
-        sizey = self.settings.child('settable_camera_parameters', 'rois', 'height').value()
-        dtype = np.int_
+        wx = self.settings.child('settable_camera_parameters', 'rois', 'width').value()
+        wy = self.settings.child('settable_camera_parameters', 'rois', 'height').value()
+        bx = self.settings.child('settable_camera_parameters', 'rois', 'x_binning').value()
+        by = self.settings.child('settable_camera_parameters', 'rois', 'y_binning').value()
 
-        mock_data = np.zeros((sizey,sizex),dtype = dtype)
-        data_shape = 'Data2D' if sizey != 1 else 'Data1D'
+        sizex = wx//bx
+        sizey = wy//by
+
+        mock_data = np.zeros((sizey,sizex))
+
+        if sizey != 1 and sizex != 1:
+            data_shape = 'Data2D'
+        else:
+            data_shape = 'Data1D'
+
         if data_shape != self.data_shape:
             self.data_shape = data_shape
             # init the viewers
             self.data_grabed_signal_temp.emit([DataFromPlugins(name='Picam',
-                                                               data=[mock_data],
+                                                               data=[np.squeeze(mock_data)],
                                                                dim=self.data_shape)])
-
 
     def grab_data(self, Naverage=1, **kwargs):
         """
@@ -220,11 +228,20 @@ class DAQ_2DViewer_PYLon(DAQ_Viewer_base):
             self.controller.clear_acquisition()
             self.controller.start_acquisition()
 
+            self._prepare_view()
+
+
         self.controller.wait_for_frame()  # wait for the next available frame
         frame = self.controller.read_oldest_image()
 
-        self.data_grabed_signal.emit([DataFromPlugins(name='Picam', data=[frame],
-                                                      dim=self.data_shape, labels=[''])])
+        self.data_grabed_signal.emit([DataFromPlugins(name='Picam',
+                                                      data=[np.squeeze(frame)],
+                                                      dim=self.data_shape)])
+        QtWidgets.QApplication.processEvents()
+
+        # self.data_grabed_signal.emit([DataFromPlugins(name='Picam', data=[np.squeeze(frame)],
+        #                                               dim=self.data_shape, labels=['img'])])
+        # self.data_grabed_signal.emit([DataFromPlugins(name='Picam', data=[frame], labels=['img'])])
 
         # if frame.shape[0]>2:
         #     self.data_grabed_signal.emit([DataFromPlugins(name='Picam', data=[frame],
