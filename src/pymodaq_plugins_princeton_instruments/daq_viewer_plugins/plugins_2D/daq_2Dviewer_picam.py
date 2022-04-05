@@ -3,12 +3,11 @@ from easydict import EasyDict as edict
 from pymodaq.daq_utils.daq_utils import ThreadCommand, getLineInfo, DataFromPlugins, Axis
 from pymodaq.daq_viewer.utility_classes import DAQ_Viewer_base, comon_parameters, main
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 
 from ...hardware.picam_utils import define_pymodaq_pyqt_parameter, sort_by_priority_list
 
 import pylablib.devices.PrincetonInstruments as PI
-
 
 class DAQ_2DViewer_picam(DAQ_Viewer_base):
     """
@@ -31,6 +30,8 @@ class DAQ_2DViewer_picam(DAQ_Viewer_base):
         {'title': 'Serial number:', 'name': 'serial_number', 'type': 'list', 'limits': serialnumbers}
     ]
 
+    callback_signal = QtCore.Signal()
+
     hardware_averaging = False
 
     def __init__(self, parent=None, params_state=None):
@@ -41,6 +42,7 @@ class DAQ_2DViewer_picam(DAQ_Viewer_base):
         self.y_axis = None
 
         self.data_shape = 'Data2D'
+        self.callback_thread = None
 
     def _update_all_settings(self):
         """Update all parameters in the interface from the values set in the device.
@@ -93,6 +95,28 @@ class DAQ_2DViewer_picam(DAQ_Viewer_base):
                 self.emit_status(ThreadCommand('Update_Status', [f'Changed {param.title()}: {param.value()}']))
                 self._update_all_settings()
 
+    def emit_data(self):
+        """
+            Fonction used to emit data obtained by callback.
+            See Also
+            --------
+            daq_utils.ThreadCommand
+        """
+        try:
+            # Get  data from buffer
+            frame = self.controller.read_newest_image()
+            # Emit the frame.
+            self.data_grabed_signal.emit([DataFromPlugins(name='Picam',
+                                                          data=[np.squeeze(frame)],
+                                                          dim=self.data_shape,
+                                                          labels=[f'Picam_{self.data_shape}'],
+                                                          )])
+            #To make sure that timed events are executed in continuous grab mode
+            QtWidgets.QApplication.processEvents()
+
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [str(e), 'log']))
+
     def ini_detector(self, controller=None):
         """Detector communication initialization
 
@@ -122,9 +146,22 @@ class DAQ_2DViewer_picam(DAQ_Viewer_base):
                 # Set camera name
                 self.settings.child('controller_id').setValue(camera.get_device_info().model)
                 # init controller
-                self.controller = camera  # any object that will control the stages
+                self.controller = camera
 
-            # Get all parameters and sort them in read_only or settable
+                #Way to define a wait function with arguments
+                wait_func = lambda: self.controller.wait_for_frame(since='lastread', nframes=1, timeout=20.0)
+                callback = PicamCallback(wait_func)
+
+                self.callback_thread = QtCore.QThread()  # creation of a Qt5 thread
+                callback.moveToThread(self.callback_thread)  # callback object will live within this thread
+                callback.data_sig.connect(self.emit_data)  # when the wait for acquisition returns (with data taken), emit_data will be fired
+
+                self.callback_signal.connect(callback.wait_for_acquisition)
+                self.callback_thread.callback = callback
+                self.callback_thread.start()
+
+
+            # Get all parameters and sort them in read_only or settable groups
             atd = self.controller.get_all_attributes(copy=True)
             camera_params = []
             for k, v in atd.items():
@@ -243,24 +280,19 @@ class DAQ_2DViewer_picam(DAQ_Viewer_base):
         Naverage: (int) Number of averaging
         kwargs: (dict) of others optionals arguments
         """
-        # Warning, acquisition_in_progress returns 1,0 and not a real bool
-        if not self.controller.acquisition_in_progress():
-            # 0. Disable all non online-settable parameters
-            self._toggle_non_online_parameters(enabled=False)
-            # 1. Start acquisition
-            self.controller.clear_acquisition()
-            self.controller.start_acquisition()
+        try:
+            # Warning, acquisition_in_progress returns 1,0 and not a real bool
+            if not self.controller.acquisition_in_progress():
+                # 0. Disable all non online-settable parameters
+                self._toggle_non_online_parameters(enabled=False)
+                # 1. Start acquisition
+                self.controller.clear_acquisition()
+                self.controller.start_acquisition()
+            #Then start the acquisition
+            self.callback_signal.emit()  # will trigger the wait for acquisition
 
-        # wait for the next available frame. Returns immediately if a frame is available in the buffer.
-        self.controller.wait_for_frame()
-        # Get it from the Buffer
-        frame = self.controller.read_oldest_image()
-        # Emit the frame.
-        self.data_grabed_signal.emit([DataFromPlugins(name='Picam',
-                                                      data=[np.squeeze(frame)],
-                                                      dim=self.data_shape,
-                                                      labels=[f'Picam_{self.data_shape}'],
-                                                      )])
+        except Exception as e:
+            self.emit_status(ThreadCommand('Update_Status', [str(e), "log"]))
 
     def callback(self):
         """optional asynchrone method called when the detector has finished its acquisition of data"""
@@ -273,6 +305,18 @@ class DAQ_2DViewer_picam(DAQ_Viewer_base):
         self._toggle_non_online_parameters(enabled=True)
         return ''
 
+class PicamCallback(QtCore.QObject):
+    """Callback object for the picam library"""
+    data_sig = QtCore.Signal()
+    def __init__(self,wait_fn):
+        super().__init__()
+        #Set the wait function
+        self.wait_fn = wait_fn
+
+    def wait_for_acquisition(self):
+        new_data = self.wait_fn()
+        if new_data is not False: #will be returned if the main thread called CancelWait
+            self.data_sig.emit()
 
 if __name__ == '__main__':
     main(__file__)
