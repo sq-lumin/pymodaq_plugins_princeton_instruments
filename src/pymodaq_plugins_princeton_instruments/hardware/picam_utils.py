@@ -106,3 +106,9 @@ def sort_by_priority_list(values, priority):
             return len(values)
 
     return sorted(values, key=get_priority)
+
+def remove_settings_from_list(values, remove_list):
+    """
+    Remove settings belonging to the list.
+    """
+    return [val for val in values if val['title'] not in remove_list]

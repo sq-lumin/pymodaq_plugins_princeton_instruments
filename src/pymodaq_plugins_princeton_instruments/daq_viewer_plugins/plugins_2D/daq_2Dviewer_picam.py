@@ -5,7 +5,7 @@ from pymodaq.daq_viewer.utility_classes import DAQ_Viewer_base, comon_parameters
 
 from qtpy import QtWidgets, QtCore
 
-from ...hardware.picam_utils import define_pymodaq_pyqt_parameter, sort_by_priority_list
+from ...hardware.picam_utils import define_pymodaq_pyqt_parameter, sort_by_priority_list, remove_settings_from_list
 
 import pylablib.devices.PrincetonInstruments as PI
 
@@ -27,7 +27,8 @@ class DAQ_2DViewer_picam(DAQ_Viewer_base):
 
     params = comon_parameters + [
         {'title': 'Controller ID:', 'name': 'controller_id', 'type': 'str', 'value': '', 'readonly': True},
-        {'title': 'Serial number:', 'name': 'serial_number', 'type': 'list', 'limits': serialnumbers}
+        {'title': 'Serial number:', 'name': 'serial_number', 'type': 'list', 'limits': serialnumbers},
+        {'title': 'Simple Settings', 'name': 'simple_settings', 'type': 'bool', 'value': True}
     ]
 
     callback_signal = QtCore.Signal()
@@ -180,7 +181,42 @@ class DAQ_2DViewer_picam(DAQ_Viewer_base):
                         'ROIs',
                         'Sensor Temperature Set Point',
                         ]
+            remove = ['Active Width',
+                      'Active Height',
+                      'Active Left Margin',
+                      'Active Top Margin',
+                      'Active Right Margin',
+                      'Active Bottom Margin',
+                      'Shutter Closing Delay',
+                      'Shutter Opening Delay',
+                      'Readout Count',
+                      'ADC Bit Depth',
+                      'Time Stamp Bit Depth',
+                      'Frame Tracking Bit Depth',
+                      'Shutter Delay Resolution',
+                      'Shutter Timing Monde',
+                      'Trigger Response',
+                      'Trigger Determination',
+                      'Output Signal',
+                      'Pixel Format',
+                      'Invert Output Signal',
+                      'Disable Data Formatting',
+                      'Track Frames',
+                      'Clean Section Final Height',
+                      'Clean Section Final Height Count',
+                      'Clean Cycle Count',
+                      'Clean Cycle Height',
+                      'Clean Serial Register',
+                      'Clean Until Trigger',
+                      'Normalize Orientation',
+                      'Correct Pixel Bias',
+                      'Shutter Timing Mode',
+                      'Time Stamps',
+                      'Time Stamp Resolution',
+                      ]
             read_and_set_parameters = sort_by_priority_list(read_and_set_parameters, priority)
+            if self.settings.child('simple_settings').value():
+                read_and_set_parameters = remove_settings_from_list(read_and_set_parameters,remove)
 
             # List of priority for ordering the parameters in the UI but for read only params, which is less
             # important (kindof)
@@ -190,7 +226,35 @@ class DAQ_2DViewer_picam(DAQ_Viewer_base):
                         'Pixel Width',
                         'Pixel Height',
                         ]
+            remove = ['Sensor Masked Height',
+                      'Sensor Masked Top Margin',
+                      'Sensor Masked Bottom Margin',
+                      'Gap Width',
+                      'Gap Height',
+                      'CCD Characteristics',
+                      'Exact Readout Count Maximum',
+                      'Pixel Width',
+                      'Pixel Height',
+                      'Frame Size',
+                      'Frame Stride',
+                      'Pixel Bit Depth',
+                      'Sensor Secondary Masked Height',
+                      'Sensor Active Width',
+                      'Sensor Active Height',
+                      'Sensor Active Left Margin',
+                      'Sensor Active Top Margin',
+                      'Sensor Active Right Margin',
+                      'Sensor Active Bottom Margin',
+                      'Sensor Secondary Active Height',
+                      'Sensor Active Extended Height',
+                      'Sensor Temperature Status',
+                      'Orientation',
+                      'Readout Orientation',
+                      'Sensor Type',
+                      ]
             read_only_parameters = sort_by_priority_list(read_only_parameters, priority)
+            if self.settings.child('simple_settings').value():
+                read_only_parameters = remove_settings_from_list(read_only_parameters, remove)
 
             # Initialisation of the parameters
             self.settings.addChild({'title': 'Settable Camera Parameters',
