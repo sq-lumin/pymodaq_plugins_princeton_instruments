@@ -3,9 +3,11 @@ pymodaq_plugins_princeton_instruments (Princeton Instruments Cameras)
 
 PyMoDAQ plugin for Princeton Instruments Cameras. Relies on Alexey Shkarin's pylablib hardware control python module.
 
-The picam library produced by Princeton Instruments has to be installed (freely downloadable at https://www.princetoninstruments.com/products/software-family/pi-cam ).
+The picam library produced by Princeton Instruments has to be installed to use this plugin (freely downloadable at https://www.princetoninstruments.com/products/software-family/pi-cam).
 
-If pylablib is not able to find an existing picam installation automatically, see: https://pylablib.readthedocs.io/en/latest/devices/Picam.html#cameras-picam )
+If pylablib is not able to find the existing picam installation (.dll file), it is easy to solve. See: https://pylablib.readthedocs.io/en/latest/devices/Picam.html#cameras-picam)
+
+You can help in the development of this plugin by testing it with your hardware and reporting issues and successes in this repository, and update the list of tested hardware. 
 
 Authors
 =======
