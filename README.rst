@@ -7,7 +7,7 @@ The picam library produced by Princeton Instruments has to be installed to use t
 
 If pylablib is not able to find the existing picam installation (.dll file), it is easy to solve. See: https://pylablib.readthedocs.io/en/latest/devices/Picam.html#cameras-picam)
 
-You can help in the development of this plugin by testing it with your hardware and reporting issues and successes in this repository, and update the list of tested hardware. 
+You can help in the development of this plugin by testing it with your hardware and reporting issues and successes in this repository. I will update the list of tested hardware hardware accordingly.
 
 Authors
 =======
