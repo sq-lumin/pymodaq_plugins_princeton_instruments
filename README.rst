@@ -1,5 +1,5 @@
 pymodaq_plugins_princeton_instruments (Princeton Instruments Cameras)
-###################################################################
+#####################################################################
 
 PyMoDAQ plugin for Princeton Instruments Cameras. Relies on Alexey Shkarin's pylablib hardware control python module.
 
