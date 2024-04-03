@@ -1,19 +1,15 @@
-## To modify by developer(s) of the plugin
-
 [plugin-info]
-SHORT_PLUGIN_NAME = 'princeton_instruments'  #to be modified, for instance daqmx then rename the module name:
-# (pymodaq_plugins_template become pymodaq_plugins_daqmx for instance)
+SHORT_PLUGIN_NAME = 'princeton_instruments'
 
-package-url = 'https://github.com/PyMoDAQ/pymodaq_plugins_template' #to modify
-description = 'some word about your plugin'
+package-url = 'https://github.com/LMSC-NTappy/pymodaq_plugins_princeton_instruments'
+description = 'Control for hyperspy of scientific cameras using the picam library'
 
-author = 'Author Name'
-author-email = 'Author email'
+author = 'Nicolas Tappy'
+author-email = 'nicolas.tappy@epfl.ch'
 license = 'MIT'
 
 [plugin-install]
-#packages required for your plugin:
-packages-required = ['pymodaq>=4.1.0']
+packages-required = ['pymodaq>=4.1.0', 'pylablib']
 
 [features]  # defines the plugin features contained into this plugin
 instruments = true  # true if plugin contains instrument classes (else false, notice the lowercase for toml files)
