@@ -1,88 +1,32 @@
-pymodaq_plugins_template
-########################
+pymodaq_plugins_princeton_instruments (Princeton Instruments Cameras)
+#####################################################################
 
-.. the following must be adapted to your developed package, links to pypi, github  description...
+PyMoDAQ plugin for Princeton Instruments Cameras. Relies on Alexey Shkarin's pylablib hardware control python module.
 
-.. image:: https://img.shields.io/pypi/v/pymodaq_plugins_template.svg
-   :target: https://pypi.org/project/pymodaq_plugins_template/
-   :alt: Latest Version
+The picam library produced by Princeton Instruments has to be installed to use this plugin (freely downloadable at https://www.princetoninstruments.com/products/software-family/pi-cam).
 
-.. image:: https://readthedocs.org/projects/pymodaq/badge/?version=latest
-   :target: https://pymodaq.readthedocs.io/en/stable/?badge=latest
-   :alt: Documentation Status
+If pylablib is not able to find the existing picam installation (.dll file), it is easy to solve. See: https://pylablib.readthedocs.io/en/latest/devices/Picam.html#cameras-picam)
 
-.. image:: https://github.com/PyMoDAQ/pymodaq_plugins_template/workflows/Upload%20Python%20Package/badge.svg
-   :target: https://github.com/PyMoDAQ/pymodaq_plugins_template
-   :alt: Publication Status
-
-.. image:: https://github.com/PyMoDAQ/pymodaq_plugins_template/actions/workflows/Test.yml/badge.svg
-    :target: https://github.com/PyMoDAQ/pymodaq_plugins_template/actions/workflows/Test.yml
-
-
-Use this template to create a repository on your account and start the development of your own PyMoDAQ plugin!
-
+You can help in the development of this plugin by testing it with your hardware and reporting issues and successes in this repository. I will update the list of tested hardware hardware accordingly.
 
 Authors
 =======
 
-* First Author  (myemail@xxx.org)
-* Other author (myotheremail@xxx.org)
-
-.. if needed use this field
-
-    Contributors
-    ============
-
-    * First Contributor
-    * Other Contributors
-
-.. if needed use this field
-
-  Depending on the plugin type, delete/complete the fields below
-
+* Nicolas Tappy
 
 Instruments
 ===========
+Should support all cameras using picam through adaptative parameters parsing.
 
-Below is the list of instruments included in this plugin
-
-Actuators
-+++++++++
-
-* **yyy**: control of yyy actuators
-* **xxx**: control of xxx actuators
-
-Viewer0D
-++++++++
-
-* **yyy**: control of yyy 0D detector
-* **xxx**: control of xxx 0D detector
-
-Viewer1D
-++++++++
-
-* **yyy**: control of yyy 1D detector
-* **xxx**: control of xxx 1D detector
-
+Tested on Princeton Instrument PYLon BR eXcelon cameras.
 
 Viewer2D
 ++++++++
 
-* **yyy**: control of yyy 2D detector
-* **xxx**: control of xxx 2D detector
-
-
-PID Models
-==========
-
-
-Extensions
-==========
+* **picam**: Control of cameras using the picam library.
 
 
 Installation instructions
 =========================
 
-* PyMoDAQ’s version.
-* Operating system’s version.
-* What manufacturer’s drivers should be installed to make this plugin run?
+* PyMoDAQ’s version. >= 4.1.0
