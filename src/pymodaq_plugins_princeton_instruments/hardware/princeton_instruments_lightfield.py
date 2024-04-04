@@ -78,7 +78,9 @@ class PILF():
             image_frame = dataset.GetFrame(0, frames - 1)
             image_array = np.frombuffer(dataset.GetDataBuffer(), dtype = 'uint16').reshape((image_frame.Width, frames), order = 'F')
             return image_array
-    
+        else:
+            print('not ready')
+        
     def lightField_closing(self, sender, event_args):
         #Close the shutter for security
         self._experiment.SetValue(CameraSettings.ShutterTimingMode, 'AlwaysClosed')
