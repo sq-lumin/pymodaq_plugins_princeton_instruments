@@ -70,7 +70,7 @@ class PILF():
             #Probably not needed to check _experiment.IsReadyToRun : always true during my testing
             frames = self._experiment.GetValue(ExperimentSettings.AcquisitionFramesToStore)
             image_array = np.zeros((1024,frames))
-            dataset = self._experiment.Capture(frames)
+            dataset = self._experiment.Capture(frames)  #_experiment.Acquire method also exists, but returns None ? can't find documentation
             # Stop processing if we do not have all frames
             if (dataset.Frames != frames):
                 # Clean up the image data set
@@ -79,7 +79,7 @@ class PILF():
             image_frame = dataset.GetFrame(0, frames - 1)   #size of the image
             image_array = np.frombuffer(dataset.GetDataBuffer(), dtype = 'uint16').reshape((image_frame.Width, frames), order = 'F')    #Translate the buffer into an array
             return image_array
-        
+
         
     def lightField_closing(self, sender, event_args):
         #Close the shutter for security
