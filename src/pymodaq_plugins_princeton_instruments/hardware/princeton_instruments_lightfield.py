@@ -66,8 +66,8 @@ class PILF():
         return err
     
     def capture_spectra(self):
-        print(self._experiment.IsReadyToRun)
         if self._experiment.get_Name() == 'LABVIEW_20180912_64lignes_3kHz_1zone' and self._experiment.IsReadyToRun:
+            #Probably not needed to check _experiment.IsReadyToRun : always true during my testing
             frames = self._experiment.GetValue(ExperimentSettings.AcquisitionFramesToStore)
             image_array = np.zeros((1024,frames))
             dataset = self._experiment.Capture(frames)
@@ -76,8 +76,8 @@ class PILF():
                 # Clean up the image data set
                 dataset.Dispose()
                 raise Exception("Frames are not equal.")
-            image_frame = dataset.GetFrame(0, frames - 1)
-            image_array = np.frombuffer(dataset.GetDataBuffer(), dtype = 'uint16').reshape((image_frame.Width, frames), order = 'F')
+            image_frame = dataset.GetFrame(0, frames - 1)   #size of the image
+            image_array = np.frombuffer(dataset.GetDataBuffer(), dtype = 'uint16').reshape((image_frame.Width, frames), order = 'F')    #Translate the buffer into an array
             return image_array
         
         
