@@ -66,6 +66,7 @@ class PILF():
         return err
     
     def capture_spectra(self):
+        print(self._experiment.IsReadyToRun)
         if self._experiment.get_Name() == 'LABVIEW_20180912_64lignes_3kHz_1zone' and self._experiment.IsReadyToRun:
             frames = self._experiment.GetValue(ExperimentSettings.AcquisitionFramesToStore)
             image_array = np.zeros((1024,frames))
@@ -78,8 +79,7 @@ class PILF():
             image_frame = dataset.GetFrame(0, frames - 1)
             image_array = np.frombuffer(dataset.GetDataBuffer(), dtype = 'uint16').reshape((image_frame.Width, frames), order = 'F')
             return image_array
-        else:
-            print('not ready')
+        
         
     def lightField_closing(self, sender, event_args):
         #Close the shutter for security
